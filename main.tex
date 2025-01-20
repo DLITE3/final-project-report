@@ -1,0 +1,29 @@
+\documentclass[a4paper,11pt, twocolumn]{ltjsarticle}
+\usepackage{styles/dlite3_project_report} % スタイルファイルの読み込み
+\usepackage{multicol}
+\usepackage{float}
+
+\title{
+  \normalsize プロジェクト報告書（最終）Project Final Report\hspace{\fill}\today\\
+  \LARGE DLITE3：境界なく人々の生活を支援する技術\\
+  \Large DLITE3:Technology that supports people's lives without boundaries}
+\author{金子康一 Kaneko Koichi}
+\date{}
+
+\begin{document}
+
+\maketitle
+
+\vspace{2em}
+
+% 本文
+\renewcommand{\rmdefault}{ptm} % Times New Roman font
+\renewcommand{\seriesdefault}{m} % Medium series (not bold)
+\input{pages/report/report.tex} % 本文ファイルの読み込み
+
+% 参考文献
+\renewcommand{\refname}{参考文献}
+\bibliographystyle{plain}
+\bibliography{pages/report/report} % 参考文献ファイル
+
+\end{document}

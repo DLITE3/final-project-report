@@ -1,0 +1,132 @@
+name: Build LaTeX Document and Upload to Google Drive
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+
+    - name: Install required LaTeX packages
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y \
+          texlive-base texlive-latex-base texlive-latex-extra \
+          texlive-fonts-recommended texlive-lang-cjk \
+          fonts-lmodern fonts-noto-cjk \
+          texlive-luatex latexmk biber mendexk
+
+    - name: Check for luaotfload-tool
+      run: |
+        if ! command -v luaotfload-tool; then
+          echo "luaotfload-tool not found, installing manually."
+          sudo tlmgr init-usertree
+          sudo tlmgr install luaotfload
+        fi
+
+    - name: Refresh font cache
+      run: |
+        sudo fc-cache -fv
+        luaotfload-tool --cache=erase
+        luaotfload-tool --update
+
+    - name: Update TeX Live
+      run: |
+        sudo tlmgr update --self
+        sudo tlmgr update --all
+
+    - name: Set environment variables
+      run: |
+        export LANG=en_US.UTF-8
+        export LC_CTYPE=en_US.UTF-8
+
+    - name: Clear luaotfload cache
+      run: |
+        luaotfload-tool --cache=erase
+
+    - name: Confirm pdfTeX version
+      run: latex --version
+
+    - name: Make build script executable
+      run: chmod +x build.sh
+
+    - name: Build LaTeX document
+      run: |
+        export LANG=en_US.UTF-8
+        export LC_CTYPE=en_US.UTF-8
+        chmod +x build.sh
+        ./build.sh
+    
+    - name: Debug build folder
+      run: ls -al build
+    
+    - name: Output LaTeX log on failure
+      if: failure()
+      run: cat build/main.log || true
+
+    - name: Set up Python environment
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.x'
+
+    - name: Install Google Drive API library
+      run: pip install google-api-python-client google-auth google-auth-httplib2 google-auth-oauthlib
+
+    - name: Upload to Google Drive and Send to Discord
+      env:
+        GOOGLE_APPLICATION_CREDENTIALS: "${{ secrets.GOOGLE_DRIVE_CREDENTIALS }}"
+        DISCORD_WEBHOOK_URL: "${{ secrets.DISCORD_WEBHOOK_URL }}"
+        BRANCH_NAME: "${{ github.ref }}"
+      run: |
+        branch_name=$(echo $BRANCH_NAME | sed 's/refs\/heads\///')
+
+        export BRANCH_NAME=$branch_name
+
+        python <<EOF
+        import os
+        import json
+        from google.oauth2 import service_account
+        from googleapiclient.discovery import build
+        from googleapiclient.http import MediaFileUpload
+        import requests
+
+        credentials_info = json.loads(os.environ['GOOGLE_APPLICATION_CREDENTIALS'])
+        creds = service_account.Credentials.from_service_account_info(
+            credentials_info,
+            scopes=['https://www.googleapis.com/auth/drive.file']
+        )
+
+        drive_service = build('drive', 'v3', credentials=creds)
+
+        folder_id = "1sze5HxFJMdntN8H9GUrdXhiQbhFeUA22"
+
+        branch_name = os.environ['BRANCH_NAME']
+        file_name = f"{branch_name}.pdf"
+
+        file_metadata = {
+            'name': file_name,
+            'parents': [folder_id]
+        }
+
+        media = MediaFileUpload('build/main.pdf', mimetype='application/pdf')
+        file = drive_service.files().create(body=file_metadata, media_body=media, fields='id, webViewLink').execute()
+
+        file_link = file.get('webViewLink')
+
+        discord_webhook_url = os.environ['DISCORD_WEBHOOK_URL']
+        message = {
+            "content": f"新しいPDFファイルがアップロードされました: {file_link}"
+        }
+
+        response = requests.post(discord_webhook_url, json=message)
+
+        if response.status_code == 204:
+            print("Successfully sent message to Discord.")
+        else:
+            print(f"Failed to send message to Discord. Status code: {response.status_code}")
+        EOF

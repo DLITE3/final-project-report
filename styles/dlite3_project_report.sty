@@ -1,0 +1,63 @@
+% 必要なパッケージ
+\RequirePackage[a4paper,margin=1in]{geometry}
+\RequirePackage{titlesec}
+\RequirePackage{multicol}
+\RequirePackage{fancyhdr}
+\RequirePackage{graphicx}
+\RequirePackage{hyperref}
+\RequirePackage{amsmath}
+\RequirePackage{mathptmx}
+\RequirePackage[OT1]{fontenc} 
+\RequirePackage{cite}
+\RequirePackage{luatexja}
+\RequirePackage{luatexja-fontspec}
+
+\renewcommand{\rmdefault}{lmr}
+
+% 日本語フォント設定
+\setmainjfont{Noto Serif CJK JP} % 本文に明朝体を指定
+\setsansjfont{Noto Sans CJK JP} % ゴシック体を指定
+
+% 見出しのフォント設定
+\titleformat{\section}{\large\bfseries\gtfamily}{\thesection}{1em}{}
+\titleformat{\subsection}{\normalsize\bfseries\gtfamily}{\thesubsection}{1em}{}
+
+% 段落の始めを1文字空ける
+\usepackage{indentfirst}
+\setlength{\parindent}{1em} % 段落の字下げ
+
+% タイトル情報コマンド
+\newcommand{\reporttitle}[1]{\newcommand{\thetitle}{#1}}
+\newcommand{\reportauthor}[1]{\newcommand{\theauthor}{#1}}
+\newcommand{\reportdate}[1]{\newcommand{\thedate}{#1}}
+\newcommand{\thedate}{}
+
+% ヘッダーとフッター
+\fancypagestyle{report}{
+  \fancyhf{}
+  \fancyhead[L]{\thetitle} % ヘッダー左にタイトル
+  \fancyhead[R]{\theauthor} % ヘッダー右に著者
+  \fancyfoot[C]{\thepage}   % フッター中央にページ番号
+}
+
+% タイトルページの作成
+\newcommand{\maketitlepage}{
+  \begin{titlepage}
+    \centering
+    {\Huge \bfseries \thetitle \par}
+    \vspace{1cm}
+    {\Large \theauthor \par}
+    \vspace{0.5cm}
+    {\large 提出日: \thedate \par}
+    \vspace*{2cm}
+  \end{titlepage}
+}
+
+% セクション番号の再定義
+\renewcommand{\thesection}{\arabic{section}}
+\renewcommand{\thesubsection}{\arabic{section}.\arabic{subsection}}
+
+% セクションスタイルの設定 (オプション: デフォルトスタイルの微調整)
+\makeatletter
+\renewcommand{\@seccntformat}[1]{\csname the#1\endcsname\quad}
+\makeatother
